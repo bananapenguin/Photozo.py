@@ -7,9 +7,56 @@ import os
 import httplib
 import base64
 import getpass
+import mimetypes
 
 user_info = None
 user_info_file = 'photozou.dat'
+boundary = '-----photozou.py-----'
+
+def photo_add(file_name
+        , album_id
+        , photo_title = ''
+        , description = ''
+        , tag = ''
+        , comment = ''
+        , data_type = 'exif'
+        , year = ''
+        , month = ''
+        , day = ''):
+    disposition = 'Content-Disposition: form-data; name="%s"'
+    values = open(file_name, 'rb').read()
+    data = {}
+    data['album_id'] = album_id
+    data['photo_title'] = photo_title
+    data['description'] = description
+    data['tag'] = tag
+    data['comment'] = comment
+    data['data_type'] = data_type
+    data['year'] = year
+    data['month'] = month
+    data['day'] = day
+    lines = []
+    lines.append('--' + boundary)
+    lines.append(disposition % 'photo' + '; filename="%s"' % file_name)
+    lines.append('Content-Type: %s' % mimetypes.guess_type(file_name)[0])
+    lines.append('')
+    lines.append(values)
+    for k, v in data.iteritems():
+        lines.append('--' + boundary)
+        lines.append(disposition % k)
+        lines.append('')
+        lines.append(v)
+    lines.append('--' + boundary + '--')
+    lines.append('')
+    data_str = '\r\n'.join(lines)
+
+    header = {'Authorization' : 'Basic %s' % user_info}
+    header['Content-Type'] = 'multipart/form-data; boundary=%s' % boundary
+    conn = httplib.HTTPConnection('api.photozou.jp')
+    conn.request('POST', '/rest/photo_add/', data_str, header)
+    r1 = conn.getresponse()
+    print r1.status, r1.reason
+    print r1.read()
 
 def nop():
     header = {'Authorization' : 'Basic %s' % user_info}
