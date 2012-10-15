@@ -8,10 +8,20 @@ import httplib
 import base64
 import getpass
 import mimetypes
+import urllib
 
-user_info = None
-user_info_file = 'photozou.dat'
+auth_info = None
+auth_info_file = 'photozou.dat'
 boundary = '-----photozou.py-----'
+
+def user_info(user_id):
+    header = {'Content-Type' : 'application/x-www-form-urlencoded'}
+    data = {'user_id' : user_id}
+    conn = httplib.HTTPConnection('api.photozou.jp')
+    conn.request('POST', '/rest/user_info', urllib.urlencode(data), header)
+    r1 = conn.getresponse()
+    print r1.status, r1.reason
+    print r1.read()
 
 def photo_add(file_name
         , album_id
@@ -50,7 +60,7 @@ def photo_add(file_name
     lines.append('')
     data_str = '\r\n'.join(lines)
 
-    header = {'Authorization' : 'Basic %s' % user_info}
+    header = {'Authorization' : 'Basic %s' % auth_info}
     header['Content-Type'] = 'multipart/form-data; boundary=%s' % boundary
     conn = httplib.HTTPConnection('api.photozou.jp')
     conn.request('POST', '/rest/photo_add/', data_str, header)
@@ -59,7 +69,7 @@ def photo_add(file_name
     print r1.read()
 
 def nop():
-    header = {'Authorization' : 'Basic %s' % user_info}
+    header = {'Authorization' : 'Basic %s' % auth_info}
     conn = httplib.HTTPConnection('api.photozou.jp')
     conn.request('GET', '/rest/nop/', '', header)
     r1 = conn.getresponse()
@@ -72,22 +82,22 @@ def createUserInfo():
     encode_str = base64.b64encode('%s:%s' % (username, password))
     return encode_str
 
-def saveUserInfo(user_info):
-    f = open(user_info_file, 'w')
-    f.write(user_info)
+def saveUserInfo(auth_info):
+    f = open(auth_info_file, 'w')
+    f.write(auth_info)
     f.close()
-    os.chmod(user_info_file, 0600)
- 
+    os.chmod(auth_info_file, 0600)
+
 def loadUserInfo():
-    f = open(user_info_file, 'r')
+    f = open(auth_info_file, 'r')
     txt = f.read()
     f.close()
     return txt
 
 if __name__ == '__main__':
-    if os.path.exists(user_info_file):
-        user_info = loadUserInfo()
+    if os.path.exists(auth_info_file):
+        auth_info = loadUserInfo()
     else:
-        user_info = createUserInfo()
-        saveUserInfo(user_info)
+        auth_info = createUserInfo()
+        saveUserInfo(auth_info)
     nop()
